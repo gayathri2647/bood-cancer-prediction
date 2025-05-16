@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | Blood Cancer Prediction</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Blood Cancer Test </h1>
+            <p>About This Application</p>
+        </header>
+        
+        <nav>
+            <ul>
+                <li><a href="/">Home</a></li>
+                <li><a href="/about" class="active">About</a></li>
+            </ul>
+        </nav>
+        
+        <main>
+            <div class="about-container">
+                <section class="about-section">
+                    <h2>About This Project</h2>
+                    <p>This Blood Cancer Prediction application is designed to assess the risk of blood cancer based on patient data including age, gender, blood test results, and symptoms. The application uses machine learning algorithms to analyze patterns in the data and provide a result.</p>
+                    <p>This tool was developed as an internship project to demonstrate the application of machine learning in healthcare diagnostics.</p>
+                </section>
+                
+                <section class="about-section">
+                    <h2>How It Works</h2>
+                    <p>The prediction model was trained on a dataset containing blood test results and symptoms from patients with and without blood cancer. The application uses the following machine learning models:</p>
+                    <ul>
+                        <li>Logistic Regression</li>
+                        <li>K-Nearest Neighbors (KNN)</li>
+                        <li>Support Vector Machine (SVM)</li>
+                    </ul>
+                    <p>After evaluating all models, the best performing one was selected for this application.</p>
+                    
+                    <div class="model-performance">
+                        <h3>Model Performance</h3>
+                        <img src="{{ url_for('static', filename='model_comparison.png') }}" alt="Model Performance Comparison" class="performance-chart">
+                        <img src="{{ url_for('static', filename='confusion_matrices.png') }}" alt="Confusion Matrices" class="performance-chart">
+                    </div>
+                </section>
+                
+                <section class="about-section">
+                    <h2>Blood Cancer Information</h2>
+                    <p>Blood cancers affect the production and function of blood cells. Most blood cancers start in the bone marrow where blood is produced. Common types of blood cancer include:</p>
+                    <ul>
+                        <li><strong>Leukemia:</strong> Cancer of the blood and bone marrow</li>
+                        <li><strong>Lymphoma:</strong> Cancer of the lymphatic system</li>
+                        <li><strong>Myeloma:</strong> Cancer of plasma cells</li>
+                    </ul>
+                    <p>Early detection of blood cancer is crucial for effective treatment. Common symptoms include fatigue, fever, night sweats, weight loss, frequent infections, easy bruising or bleeding, and bone pain.</p>
+                </section>
+                
+                <section class="about-section">
+                    <h2>Important Disclaimer</h2>
+                    <p>This application is for educational and demonstration purposes only. It is not intended to be a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.</p>
+                    <p>The predictions made by this application should not be used for self-diagnosis or to make medical decisions without consulting healthcare professionals.</p>
+                </section>
+                
+                <section class="about-section">
+                    <h2>Technical Details</h2>
+                    <p>This application was built using:</p>
+                    <ul>
+                        <li>Python for backend processing and machine learning</li>
+                        <li>Flask web framework</li>
+                        <li>Scikit-learn for machine learning algorithms</li>
+                        <li>Pandas for data manipulation</li>
+                        <li>HTML, CSS for the user interface</li>
+                    </ul>
+                </section>
+            </div>
+        </main>
+        
+        <footer>
+            <p>&copy; 2025 Blood Cancer Prediction Tool | Medical Disclaimer: This tool is for educational purposes only and should not replace professional medical advice.</p>
+        </footer>
+    </div>
+</body>
+</html>
