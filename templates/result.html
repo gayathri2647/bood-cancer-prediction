@@ -6,6 +6,47 @@
     <title>Prediction Result | Blood Cancer Prediction</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .extracted-data {
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            padding: 20px;
+            margin-top: 30px;
+            border-left: 4px solid #4CAF50;
+        }
+        .extracted-data h3 {
+            margin-top: 0;
+            color: #333;
+            font-size: 18px;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .data-table th, .data-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .data-table th {
+            background-color: #f0f0f0;
+            font-weight: 500;
+        }
+        .symptoms-list {
+            list-style-type: none;
+            padding-left: 0;
+            margin: 0;
+        }
+        .symptoms-list li {
+            display: inline-block;
+            background-color: #e0f2e0;
+            padding: 5px 10px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -71,6 +112,64 @@
                         {% endif %}
                     </div>
                 </div>
+                
+                {% if from_pdf and extracted_data %}
+                <div class="extracted-data">
+                    <h3>Data Extracted from PDF</h3>
+                    <table class="data-table">
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Value</th>
+                            <th>Normal Range</th>
+                        </tr>
+                        <tr>
+                            <td>Age</td>
+                            <td>{{ extracted_data.age }}</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Gender</td>
+                            <td>{{ extracted_data.gender|title }}</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>White Blood Cell Count</td>
+                            <td>{{ extracted_data.wbc }}</td>
+                            <td>4,500-11,000 cells/μL</td>
+                        </tr>
+                        <tr>
+                            <td>Red Blood Cell Count</td>
+                            <td>{{ extracted_data.rbc }}</td>
+                            <td>4.5-5.9 (men), 4.1-5.1 (women) million cells/μL</td>
+                        </tr>
+                        <tr>
+                            <td>Hemoglobin</td>
+                            <td>{{ extracted_data.hemoglobin }}</td>
+                            <td>13.5-17.5 (men), 12.0-15.5 (women) g/dL</td>
+                        </tr>
+                        <tr>
+                            <td>Platelets</td>
+                            <td>{{ extracted_data.platelets }}</td>
+                            <td>150,000-450,000 per μL</td>
+                        </tr>
+                        <tr>
+                            <td>Symptoms</td>
+                            <td colspan="2">
+                                {% if extracted_data.symptoms %}
+                                <ul class="symptoms-list">
+                                    {% for symptom in extracted_data.symptoms %}
+                                    <li>{{ symptom|replace('_', ' ')|title }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% else %}
+                                No symptoms detected
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                    <p><small>Note: This data was automatically extracted from the uploaded PDF. Please verify its accuracy.</small></p>
+                </div>
+                {% endif %}
                 
                 <div class="result-actions">
                     <a href="/" class="btn-primary">New Prediction</a>

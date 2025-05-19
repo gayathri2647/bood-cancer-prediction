@@ -3,15 +3,135 @@ import pandas as pd
 import numpy as np
 import os
 import subprocess
+import tempfile
+from PyPDF2 import PdfWriter, PdfReader
+import io
 
+def create_test_pdf():
+    """
+    Create a test PDF file with medical data for testing PDF extraction functionality
+    """
+    print("\nCreating test PDF for PDF extraction testing...")
+    
+    # Create a simple PDF with medical data
+    pdf_content = """
+    Patient Medical Report
+    
+    Patient Information:
+    Age: 65
+    Gender: Male
+    
+    Blood Test Results:
+    White Blood Cell Count (WBC): 15000 cells/μL
+    Red Blood Cell Count (RBC): 3.8 million cells/μL
+    Hemoglobin: 10.5 g/dL
+    Platelets: 95000 per μL
+    
+    Clinical Observations:
+    The patient presents with fatigue, night sweats, and bone pain.
+    Patient reports frequent infections in the past 3 months.
+    
+    Assessment:
+    Patient shows abnormal blood cell counts that require further investigation.
+    """
+    
+    # Create a PDF file
+    pdf_writer = PdfWriter()
+    
+    # Add a page with the content
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    
+    packet = io.BytesIO()
+    can = canvas.Canvas(packet, pagesize=letter)
+    
+    # Write the content to the PDF
+    y_position = 750  # Start from top
+    for line in pdf_content.split('\n'):
+        can.drawString(72, y_position, line)
+        y_position -= 15  # Move down for next line
+    
+    can.save()
+    
+    # Move to the beginning of the BytesIO buffer
+    packet.seek(0)
+    new_pdf = PdfReader(packet)
+    
+    # Add the page to the PDF writer
+    pdf_writer.add_page(new_pdf.pages[0])
+    
+    # Save the PDF to a temporary file
+    with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+        pdf_path = temp_file.name
+        with open(pdf_path, 'wb') as output_file:
+            pdf_writer.write(output_file)
+    
+    print(f"Test PDF created at: {pdf_path}")
+    return pdf_path
+
+def test_pdf_extraction():
+    """
+    Test the PDF extraction functionality
+    """
+    try:
+        # Import the necessary functions from app.py
+        from app import extract_text_from_pdf, parse_medical_data_from_text
+        
+        # Create a test PDF
+        pdf_path = create_test_pdf()
+        
+        # Extract text from the PDF
+        print("\nTest Case 6: PDF Text Extraction")
+        extracted_text = extract_text_from_pdf(pdf_path)
+        if not extracted_text:
+            print("Failed to extract text from PDF")
+            return False
+        
+        print("Successfully extracted text from PDF")
+        print(f"Extracted text sample: {extracted_text[:100]}...")
+        
+        # Parse medical data from the extracted text
+        print("\nTest Case 7: Medical Data Parsing from PDF")
+        medical_data = parse_medical_data_from_text(extracted_text)
+        
+        # Check if all required fields were extracted
+        required_fields = ['age', 'gender', 'wbc', 'rbc', 'hemoglobin', 'platelets']
+        missing_fields = [field for field in required_fields if medical_data.get(field) is None]
+        
+        if missing_fields:
+            print(f"Failed to extract all required fields. Missing: {missing_fields}")
+            return False
+        
+        # Print the extracted data
+        print("Successfully parsed medical data from PDF:")
+        print(f"Age: {medical_data['age']}")
+        print(f"Gender: {medical_data['gender']}")
+        print(f"WBC: {medical_data['wbc']}")
+        print(f"RBC: {medical_data['rbc']}")
+        print(f"Hemoglobin: {medical_data['hemoglobin']}")
+        print(f"Platelets: {medical_data['platelets']}")
+        print(f"Symptoms: {medical_data['symptoms']}")
+        
+        # Clean up the temporary file
+        try:
+            os.remove(pdf_path)
+            print(f"Removed temporary PDF file: {pdf_path}")
+        except Exception as e:
+            print(f"Warning: Could not remove temporary file {pdf_path}: {str(e)}")
+        
+        return True
+    except ImportError:
+        print("Could not import PDF extraction functions from app.py")
+        return False
+    except Exception as e:
+        print(f"Error testing PDF extraction: {str(e)}")
+        return False
 def test_model_prediction():
     """
     Test script to verify that the model prediction works correctly
     with different input formats.
     """
     print("Testing model prediction...")
-    
-    # Check if model exists, if not, train it
     if not os.path.exists('model.pkl'):
         print("Model file not found. Running train_model.py...")
         try:
@@ -401,4 +521,10 @@ def test_model_prediction():
     return True
 
 if __name__ == "__main__":
+    # Run model prediction tests
     test_model_prediction()
+    
+    # Run PDF extraction tests
+    print("\n" + "="*50)
+    print("Running PDF extraction tests...")
+    test_pdf_extraction()

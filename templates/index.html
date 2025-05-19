@@ -6,12 +6,92 @@
     <title>Blood Cancer Prediction</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Tab styling */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #f8f8f8;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+        }
+        .tab-button.active {
+            background-color: #fff;
+            border-bottom: 3px solid #4CAF50;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .file-upload-container {
+            border: 2px dashed #ddd;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .file-upload-container:hover {
+            border-color: #4CAF50;
+        }
+        .file-upload-label {
+            display: block;
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .file-upload-input {
+            display: none;
+        }
+        .file-upload-button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        .file-upload-button:hover {
+            background-color: #45a049;
+        }
+        .file-name-display {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .pdf-instructions {
+            background-color: #f0f7ff;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .pdf-instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .pdf-instructions ul {
+            margin-bottom: 0;
+            padding-left: 20px;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Blood Cancer Test</h1>
-            <p>Enter patient information to predict blood cancer risk</p>
+            <p>Enter patient information or upload a medical report to predict blood cancer risk</p>
         </header>
         
         <nav>
@@ -27,102 +107,165 @@
                 <p>{{ error }}</p>
             </div>
             {% endif %}
-            <form action="/predict" method="post" class="prediction-form">
-                <div class="form-section">
-                    <h2>Patient Information</h2>
-                    
-                    <div class="form-group">
-                        <label for="age">Age:</label>
-                        <input type="number" id="age" name="age" min="0" max="120" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="gender">Gender:</label>
-                        <select id="gender" name="gender" required>
-                            <option value="">Select Gender</option>
-                            <option value="male">Male</option>
-                            <option value="female">Female</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <div class="form-section">
-                    <h2>Blood Test Results</h2>
-                    
-                    <div class="form-group">
-                        <label for="wbc">White Blood Cell Count (cells/μL):</label>
-                        <input type="number" id="wbc" name="wbc" min="0" step="0.01" required>
-                        <span class="normal-range">Normal range: 4,500-11,000</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="rbc">Red Blood Cell Count (million cells/μL):</label>
-                        <input type="number" id="rbc" name="rbc" min="0" step="0.01" required>
-                        <span class="normal-range">Normal range: 4.5-5.9 (men), 4.1-5.1 (women)</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="hemoglobin">Hemoglobin (g/dL):</label>
-                        <input type="number" id="hemoglobin" name="hemoglobin" min="0" step="0.1" required>
-                        <span class="normal-range">Normal range: 13.5-17.5 (men), 12.0-15.5 (women)</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="platelets">Platelet Count (per μL):</label>
-                        <input type="number" id="platelets" name="platelets" min="0" required>
-                        <span class="normal-range">Normal range: 150,000-450,000</span>
-                    </div>
-                </div>
-                
-                <div class="form-section">
-                    <h2>Symptoms</h2>
-                    <p>Select all symptoms that apply:</p>
-                    
-                    <div class="symptoms-grid">
-                        {% for symptom in symptoms %}
-                        <div class="symptom-checkbox">
-                            <input type="checkbox" id="symptom_{{ symptom }}" name="symptoms" value="{{ symptom }}">
-                            <label for="symptom_{{ symptom }}">{{ symptom|replace('_', ' ')|title }}</label>
+            
+            <div class="tabs">
+                <button class="tab-button active" onclick="openTab(event, 'manual-input')">Manual Input</button>
+                <button class="tab-button" onclick="openTab(event, 'pdf-upload')">Upload PDF Report</button>
+            </div>
+            
+            <div id="manual-input" class="tab-content active">
+                <form action="/predict" method="post" class="prediction-form">
+                    <div class="form-section">
+                        <h2>Patient Information</h2>
+                        
+                        <div class="form-group">
+                            <label for="age">Age:</label>
+                            <input type="number" id="age" name="age" min="0" max="120" required>
                         </div>
-                        {% endfor %}
-                        <div class="symptom-checkbox">
-                            <input type="checkbox" id="symptom_others" name="symptoms" value="others" onclick="toggleOtherSymptomField()">
-                            <label for="symptom_others">Others</label>
+                        
+                        <div class="form-group">
+                            <label for="gender">Gender:</label>
+                            <select id="gender" name="gender" required>
+                                <option value="">Select Gender</option>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
                     </div>
                     
-                    <div id="other_symptom_container" style="display: none; margin-top: 10px;">
-                        <label for="other_symptom">Please specify other symptoms:</label>
-                        <input type="text" id="other_symptom" name="other_symptom" class="form-control" 
-                               placeholder="Enter other symptoms" 
-                               style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+                    <div class="form-section">
+                        <h2>Blood Test Results</h2>
+                        
+                        <div class="form-group">
+                            <label for="wbc">White Blood Cell Count (cells/μL):</label>
+                            <input type="number" id="wbc" name="wbc" min="0" step="0.01" required>
+                            <span class="normal-range">Normal range: 4,500-11,000</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="rbc">Red Blood Cell Count (million cells/μL):</label>
+                            <input type="number" id="rbc" name="rbc" min="0" step="0.01" required>
+                            <span class="normal-range">Normal range: 4.5-5.9 (men), 4.1-5.1 (women)</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="hemoglobin">Hemoglobin (g/dL):</label>
+                            <input type="number" id="hemoglobin" name="hemoglobin" min="0" step="0.1" required>
+                            <span class="normal-range">Normal range: 13.5-17.5 (men), 12.0-15.5 (women)</span>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="platelets">Platelet Count (per μL):</label>
+                            <input type="number" id="platelets" name="platelets" min="0" required>
+                            <span class="normal-range">Normal range: 150,000-450,000</span>
+                        </div>
                     </div>
                     
-                    <script>
-                        function toggleOtherSymptomField() {
-                            var checkbox = document.getElementById('symptom_others');
-                            var container = document.getElementById('other_symptom_container');
-                            if (checkbox.checked) {
-                                container.style.display = 'block';
-                            } else {
-                                container.style.display = 'none';
-                                document.getElementById('other_symptom').value = '';
-                            }
-                        }
-                    </script>
+                    <div class="form-section">
+                        <h2>Symptoms</h2>
+                        <p>Select all symptoms that apply:</p>
+                        
+                        <div class="symptoms-grid">
+                            {% for symptom in symptoms %}
+                            <div class="symptom-checkbox">
+                                <input type="checkbox" id="symptom_{{ symptom }}" name="symptoms" value="{{ symptom }}">
+                                <label for="symptom_{{ symptom }}">{{ symptom|replace('_', ' ')|title }}</label>
+                            </div>
+                            {% endfor %}
+                            <div class="symptom-checkbox">
+                                <input type="checkbox" id="symptom_others" name="symptoms" value="others" onclick="toggleOtherSymptomField()">
+                                <label for="symptom_others">Others</label>
+                            </div>
+                        </div>
+                        
+                        <div id="other_symptom_container" style="display: none; margin-top: 10px;">
+                            <label for="other_symptom">Please specify other symptoms:</label>
+                            <input type="text" id="other_symptom" name="other_symptom" class="form-control" 
+                                   placeholder="Enter other symptoms" 
+                                   style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Predict Risk</button>
+                        <button type="reset" class="btn-secondary">Reset Form</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div id="pdf-upload" class="tab-content">
+                <div class="pdf-instructions">
+                    <h3>PDF Upload Instructions</h3>
+                    <p>Upload a medical report PDF that contains the following information:</p>
+                    <ul>
+                        <li>Patient age and gender</li>
+                        <li>Blood test results (WBC, RBC, Hemoglobin, Platelets)</li>
+                        <li>Symptoms or clinical observations</li>
+                    </ul>
+                    <p>The system will automatically extract this information and generate a prediction.</p>
                 </div>
                 
-                <div class="form-actions">
-                    <button type="submit" class="btn-primary">Predict Risk</button>
-                    <button type="reset" class="btn-secondary">Reset Form</button>
-                </div>
-            </form>
+                <form action="/upload_pdf" method="post" enctype="multipart/form-data" class="prediction-form">
+                    <div class="file-upload-container">
+                        <label for="pdf_file" class="file-upload-label">Select a medical report PDF file</label>
+                        <input type="file" id="pdf_file" name="pdf_file" class="file-upload-input" accept=".pdf" onchange="updateFileName(this)">
+                        <button type="button" class="file-upload-button" onclick="document.getElementById('pdf_file').click()">Choose File</button>
+                        <div id="file-name-display" class="file-name-display">No file selected</div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary">Analyze PDF</button>
+                        <button type="reset" class="btn-secondary" onclick="resetFileInput()">Reset</button>
+                    </div>
+                </form>
+            </div>
         </main>
         
         <footer>
             <p>&copy; 2025 Blood Cancer Prediction Tool | Medical Disclaimer: This tool is for educational purposes only and should not replace professional medical advice.</p>
         </footer>
     </div>
+    
+    <script>
+        function toggleOtherSymptomField() {
+            var checkbox = document.getElementById('symptom_others');
+            var container = document.getElementById('other_symptom_container');
+            if (checkbox.checked) {
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+                document.getElementById('other_symptom').value = '';
+            }
+        }
+        
+        function openTab(evt, tabName) {
+            // Hide all tab content
+            var tabContents = document.getElementsByClassName("tab-content");
+            for (var i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // Remove active class from all tab buttons
+            var tabButtons = document.getElementsByClassName("tab-button");
+            for (var i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove("active");
+            }
+            
+            // Show the selected tab content and mark the button as active
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        function updateFileName(input) {
+            var fileName = input.files[0] ? input.files[0].name : "No file selected";
+            document.getElementById('file-name-display').textContent = fileName;
+        }
+        
+        function resetFileInput() {
+            document.getElementById('pdf_file').value = '';
+            document.getElementById('file-name-display').textContent = "No file selected";
+        }
+    </script>
 </body>
 </html>
