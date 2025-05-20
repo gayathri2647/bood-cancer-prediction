@@ -420,10 +420,17 @@ def upload_pdf():
                     if field != 'symptoms' and value is None:
                         missing_fields.append(field)
                 
+                # Clean up the uploaded file
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    print(f"Warning: Could not remove temporary file {file_path}: {str(e)}")
+                
+                # If there are missing fields, redirect to the missing data form
                 if missing_fields:
-                    return render_template('index.html', 
-                                          symptoms=symptoms, 
-                                          error=f"Missing required data in PDF: {', '.join(missing_fields)}")
+                    return render_template('missing_data.html',
+                                        extracted_data=medical_data,
+                                        missing_fields=missing_fields)
                 
                 # Convert gender to numerical value
                 gender_mapping = {'male': 0, 'female': 1, 'other': 2}
@@ -511,29 +518,12 @@ def upload_pdf():
                 result = "Positive" if prediction == 1 else "Negative"
                 risk_level = "High" if probability > 0.75 else "Medium" if probability > 0.5 else "Low"
                 
-                # Clean up the uploaded file
-                try:
-                    os.remove(file_path)
-                except Exception as e:
-                    print(f"Warning: Could not remove temporary file {file_path}: {str(e)}")
-                
-                # Pass the extracted data to the result template
-                extracted_data = {
-                    'age': medical_data['age'],
-                    'gender': medical_data['gender'],
-                    'wbc': medical_data['wbc'],
-                    'rbc': medical_data['rbc'],
-                    'hemoglobin': medical_data['hemoglobin'],
-                    'platelets': medical_data['platelets'],
-                    'symptoms': medical_data['symptoms']
-                }
-                
                 return render_template('result.html', 
                                       prediction=result, 
                                       probability=round(probability * 100, 2),
                                       risk_level=risk_level,
                                       from_pdf=True,
-                                      extracted_data=extracted_data)
+                                      extracted_data=medical_data)
                 
             except Exception as e:
                 error_message = f"Error processing PDF: {str(e)}"
@@ -545,6 +535,123 @@ def upload_pdf():
             return render_template('index.html', 
                                   symptoms=symptoms, 
                                   error="Invalid file type. Please upload a PDF file.")
+
+@app.route('/complete_missing_data', methods=['POST'])
+def complete_missing_data():
+    if request.method == 'POST':
+        try:
+            # Get all form data
+            form_data = {
+                'age': request.form.get('age'),
+                'gender': request.form.get('gender'),
+                'wbc': request.form.get('wbc'),
+                'rbc': request.form.get('rbc'),
+                'hemoglobin': request.form.get('hemoglobin'),
+                'platelets': request.form.get('platelets'),
+                'symptoms': request.form.getlist('symptoms')
+            }
+            
+            # Convert numeric fields to float if they exist
+            numeric_fields = ['age', 'wbc', 'rbc', 'hemoglobin', 'platelets']
+            for field in numeric_fields:
+                if form_data[field]:
+                    form_data[field] = float(form_data[field])
+            
+            # Convert gender to numerical value
+            gender_mapping = {'male': 0, 'female': 1, 'other': 2}
+            gender_value = gender_mapping.get(form_data['gender'], 2)  # Default to 'other' if not found
+            
+            # Create feature dictionary for prediction
+            prediction_data = {
+                'age': form_data['age'],
+                'gender': gender_value,
+                'wbc': form_data['wbc'],
+                'rbc': form_data['rbc'],
+                'hemoglobin': form_data['hemoglobin'],
+                'platelets': form_data['platelets']
+            }
+            
+            # Create a DataFrame with form data
+            input_df = pd.DataFrame([prediction_data])
+            
+            # Map form field names to expected feature names
+            field_to_feature = {
+                'age': 'Age',
+                'gender': 'Gender',
+                'wbc': 'WBC',
+                'rbc': 'RBC',
+                'hemoglobin': 'Hemoglobin',
+                'platelets': 'Platelets'
+            }
+            
+            # Rename columns to match expected feature names
+            input_df = input_df.rename(columns=field_to_feature)
+            
+            # Create a DataFrame with all expected features
+            final_df = pd.DataFrame(columns=expected_feature_names)
+            
+            # Copy values from input_df to final_df where column names match
+            for col in input_df.columns:
+                if col in expected_feature_names:
+                    final_df[col] = input_df[col]
+            
+            # Handle symptom features
+            for symptom in form_data['symptoms']:
+                symptom_feature = f'Symptom_{symptom}'
+                if symptom_feature in expected_feature_names:
+                    final_df[symptom_feature] = 1
+            
+            # Fill missing values with 0
+            final_df = final_df.fillna(0)
+            
+            # Ensure all expected features are present
+            for feature in expected_feature_names:
+                if feature not in final_df.columns:
+                    final_df[feature] = 0
+                    print(f"Added missing feature: {feature}")
+            
+            # Reindex the DataFrame to match the exact order of expected features
+            final_df = final_df.reindex(columns=expected_feature_names)
+            
+            # Validate features before prediction
+            is_valid, validation_message = validate_features(final_df, expected_feature_names)
+            if not is_valid:
+                print(f"Feature validation warning: {validation_message}")
+            
+            # Apply appropriate data types if available in metadata
+            if feature_metadata and 'feature_types' in feature_metadata:
+                for col, dtype_str in feature_metadata['feature_types'].items():
+                    if col in final_df.columns:
+                        try:
+                            # Convert string representation of dtype back to actual dtype
+                            if 'int' in dtype_str:
+                                final_df[col] = final_df[col].astype(int)
+                            elif 'float' in dtype_str:
+                                final_df[col] = final_df[col].astype(float)
+                        except Exception as e:
+                            print(f"Warning: Could not convert {col} to {dtype_str}: {e}")
+            
+            # Make prediction
+            prediction = model.predict(final_df)[0]
+            probability = model.predict_proba(final_df)[0][1]  # Probability of positive class
+            
+            # Determine result
+            result = "Positive" if prediction == 1 else "Negative"
+            risk_level = "High" if probability > 0.75 else "Medium" if probability > 0.5 else "Low"
+            
+            return render_template('result.html', 
+                                  prediction=result, 
+                                  probability=round(probability * 100, 2),
+                                  risk_level=risk_level,
+                                  from_pdf=True,
+                                  extracted_data=form_data)
+                                  
+        except Exception as e:
+            error_message = f"Error processing form data: {str(e)}"
+            print(error_message)
+            return render_template('index.html', 
+                                  symptoms=symptoms, 
+                                  error=error_message)
 
 @app.route('/about')
 def about():

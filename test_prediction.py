@@ -112,12 +112,92 @@ def test_pdf_extraction():
         print(f"Platelets: {medical_data['platelets']}")
         print(f"Symptoms: {medical_data['symptoms']}")
         
-        # Clean up the temporary file
+        # Test Case 8: Handling Missing Data in PDF
+        print("\nTest Case 8: Handling Missing Data in PDF")
+        # Create a PDF with missing data
+        pdf_content = """
+        Patient Medical Report
+        
+        Patient Information:
+        Age: 65
+        Gender: Male
+        
+        Blood Test Results:
+        White Blood Cell Count (WBC): 15000 cells/μL
+        Hemoglobin: 10.5 g/dL
+        
+        Clinical Observations:
+        The patient presents with fatigue and night sweats.
+        """
+        
+        # Create a temporary file for the PDF with missing data
+        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as temp_file:
+            pdf_path_missing = temp_file.name
+            
+            # Create PDF with missing data
+            pdf_writer = PdfWriter()
+            packet = io.BytesIO()
+            can = canvas.Canvas(packet, pagesize=letter)
+            
+            y_position = 750
+            for line in pdf_content.split('\n'):
+                can.drawString(72, y_position, line)
+                y_position -= 15
+            
+            can.save()
+            packet.seek(0)
+            new_pdf = PdfReader(packet)
+            pdf_writer.add_page(new_pdf.pages[0])
+            
+            with open(pdf_path_missing, 'wb') as output_file:
+                pdf_writer.write(output_file)
+        
+        # Extract and parse data from the PDF with missing fields
+        extracted_text_missing = extract_text_from_pdf(pdf_path_missing)
+        medical_data_missing = parse_medical_data_from_text(extracted_text_missing)
+        
+        # Verify that missing fields are detected
+        missing_fields = [field for field in required_fields if medical_data_missing.get(field) is None]
+        expected_missing = ['rbc', 'platelets']
+        
+        if set(missing_fields) != set(expected_missing):
+            print(f"Missing field detection failed. Expected: {expected_missing}, Got: {missing_fields}")
+            return False
+        
+        print("Successfully detected missing fields in PDF")
+        print(f"Missing fields: {missing_fields}")
+        
+        # Test completing missing data
+        print("\nTest Case 9: Completing Missing Data")
+        # Simulate form data for completing missing fields
+        completion_data = {
+            'rbc': 3.8,
+            'platelets': 95000
+        }
+        
+        # Combine extracted and completed data
+        complete_data = medical_data_missing.copy()
+        for field, value in completion_data.items():
+            complete_data[field] = value
+        
+        # Verify that all required fields are now present
+        missing_fields_after = [field for field in required_fields if complete_data.get(field) is None]
+        if missing_fields_after:
+            print(f"Data completion failed. Still missing: {missing_fields_after}")
+            return False
+        
+        print("Successfully completed missing data")
+        print("Final data:")
+        for field in required_fields:
+            print(f"{field}: {complete_data[field]}")
+        
+        # Clean up the temporary files
         try:
             os.remove(pdf_path)
-            print(f"Removed temporary PDF file: {pdf_path}")
+            os.remove(pdf_path_missing)
+            print("Removed temporary PDF files")
         except Exception as e:
-            print(f"Warning: Could not remove temporary file {pdf_path}: {str(e)}")
+            print(f"Warning: Could not remove temporary files: {str(e)}")
         
         return True
     except ImportError:
